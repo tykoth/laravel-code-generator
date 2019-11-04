@@ -65,6 +65,7 @@ class ResourceFileCreateCommand extends ResourceFileCreatorCommandBase
         $indexes = $this->getIndexes($input->indexes);
 
         $resource = new Resource($fields, $relations, $indexes);
+		
 
         $this->createFile($file, Helpers::prettifyJson($resource->toArray()))
             ->info('The "' . basename($file) . '" file was crafted successfully!');

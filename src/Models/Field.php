@@ -882,7 +882,7 @@ class Field implements JsonWriter
             'is-unique' => $this->isUnique,
             'is-primary' => $this->isPrimary,
             'comment' => $this->comment,
-            'is-nullable' => $this->isNullable,
+            'is-nullable' => $this->isNullable(),
             'is-header' => $this->isHeader,
             'is-unsigned' => $this->isUnsigned,
             'is-auto-increment' => $this->isAutoIncrement,
@@ -1043,10 +1043,10 @@ class Field implements JsonWriter
      */
     public function setDataTypeParams(array $properties)
     {
-        if (Helpers::isKeyExists($properties, 'data-type-params') && is_array($properties['data-type-params'])) {
+        if (Helpers::isKeyExists($properties, 'data-type-params')) {
             $this->methodParams = $this->getDataTypeParams((array) $properties['data-type-params']);
         }
-
+		
         return $this;
     }
 
@@ -1060,7 +1060,6 @@ class Field implements JsonWriter
     public function getDataTypeParams(array $params)
     {
         $type = $this->getEloquentDataMethod();
-
         if (in_array($type, ['char', 'string']) && isset($params[0]) && ($length = intval($params[0])) > 0) {
             return [$length];
         }
@@ -1141,7 +1140,7 @@ class Field implements JsonWriter
             $this->validationRules = is_array($properties['validation']) ? $properties['validation'] : Helpers::removeEmptyItems(explode('|', $properties['validation']));
         }
 
-        if (Helpers::isNewerThanOrEqualTo('5.2') && $this->isNullable && !in_array('nullable', $this->validationRules)) {
+        if (Helpers::isNewerThanOrEqualTo('5.2') && $this->isNullable() && !in_array('nullable', $this->validationRules)) {
             $this->validationRules[] = 'nullable';
         }
 
@@ -1525,7 +1524,7 @@ class Field implements JsonWriter
      */
     public function getMinLength()
     {
-        if ($this->isRequired() || !$this->isNullable) {
+        if ($this->isRequired() || !$this->isNullable()) {
             return 1;
         }
 
@@ -1557,6 +1556,7 @@ class Field implements JsonWriter
             return null;
         }
         $dataType = $this->getEloquentDataMethod();
+		$max = 2147483647;
 
         if ($this->isDecimal()) {
             $length = $this->getMethodParam(0) ?: 1;
@@ -1567,15 +1567,15 @@ class Field implements JsonWriter
                 $max = substr_replace($max, '.', $declimal * -1, 0);
             }
             $max = floatval($max);
-        } elseif ($dataType == 'integer') {
+        } elseif ($dataType == 'integer' || $dataType == 'increments') {
             $max = $this->isUnsigned ? 4294967295 : 2147483647;
-        } elseif ($dataType == 'mediumInteger') {
+        } elseif ($dataType == 'mediumInteger' || $dataType == 'mediumIncrements') {
             $max = $this->isUnsigned ? 16777215 : 8388607;
-        } elseif ($dataType == 'smallInteger') {
+        } elseif ($dataType == 'smallInteger' || $dataType == 'smallIncrements') {
             $max = $this->isUnsigned ? 65535 : 32767;
-        } elseif ($dataType == 'tinyInteger') {
+        } elseif ($dataType == 'tinyInteger' || $dataType == 'tinyIncrements') {
             $max = $this->isUnsigned ? 255 : 127;
-        } elseif ($dataType == 'bigInteger') {
+        } elseif ($dataType == 'bigInteger' || $dataType == 'bigIncrements') {
             $max = $this->isUnsigned ? 18446744073709551615 : 9223372036854775807;
         }
 
@@ -1807,7 +1807,7 @@ class Field implements JsonWriter
             ->setPlaceholder($properties) // this must come after setForeignRelation
             ->setOnStore($properties)
             ->setOnUpdate($properties);
-
+			
         if (Field::isValidSelectRangeType($properties)) {
             $field->htmlType = 'selectRange';
         }
@@ -1815,7 +1815,7 @@ class Field implements JsonWriter
         if ($field->getEloquentDataMethod() == 'enum' && empty($field->getOptions())) {
             throw new Exception('To construct an enum data-type field, options must be set. ' . $field->name);
         }
-
+	
         return $field;
     }
 }
