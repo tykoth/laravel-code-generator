@@ -45,7 +45,7 @@ class ResourceFileFromDatabaseCommand extends ResourceFileCommandBase
      *
      * @var array
      */
-    protected $drivers = ['mysql'];
+    protected $drivers = ['mysql', 'sqlite'];
 
     /**
      * Execute the console command.
@@ -116,15 +116,17 @@ class ResourceFileFromDatabaseCommand extends ResourceFileCommandBase
      */
     protected function getParser()
     {
-        $driver = strtolower(DB::getDriverName());
-
+        $databaseName = $this->getDatabaseName();
+        $connection = DB::connection($databaseName);
+        $driver = strtolower($connection->getDriverName());
+        config(['database.default' => $databaseName]);
         if (!in_array($driver, $this->drivers)) {
             throw new Exception('The database driver user is not supported!');
         }
 
         $class = sprintf('CrestApps\CodeGenerator\DatabaseParsers\%sParser', ucfirst($driver));
 
-        return new $class($this->getTableName(), $this->getDatabaseName(), $this->getLanguages());
+        return new $class($this->getTableName(), $databaseName, $this->getLanguages());
     }
 
     /**
